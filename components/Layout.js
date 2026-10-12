@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { LayoutDashboard, ClipboardList, Factory, CalendarDays, Package, FlaskConical, Boxes, Truck, Receipt, Users, LogOut } from 'lucide-react'
+import { LayoutDashboard, ClipboardList, Factory, CalendarDays, Package, FlaskConical, Boxes, Truck, Receipt, Users, UserCog, LogOut } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 const NAV = [
@@ -15,6 +15,7 @@ const NAV = [
   { href: '/deliveries', label: 'Penghantaran', icon: Truck },
   { href: '/invoices', label: 'Invois & Bayaran', icon: Receipt },
   { href: '/clients', label: 'Client', icon: Users },
+  { href: '/staff', label: 'Staf & Akses', icon: UserCog, adminOnly: true },
 ]
 
 export default function Layout({ children }) {
@@ -41,7 +42,7 @@ export default function Layout({ children }) {
           <img src="/brand/progresss-logo-dark.svg" alt="Progresss" className="h-8" />
         </div>
         <nav className="flex md:flex-col gap-1 p-3 overflow-x-auto md:flex-1">
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {NAV.filter(n => !n.adminOnly || profile?.role === 'admin').map(({ href, label, icon: Icon }) => {
             const active = href === '/' ? router.pathname === '/' : router.pathname.startsWith(href)
             const cls = `flex items-center gap-3 px-3 py-2 rounded-lg text-sm whitespace-nowrap ${
               active ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`
