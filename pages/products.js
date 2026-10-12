@@ -3,6 +3,7 @@ import Head from 'next/head'
 import { Plus, Pencil, Trash2, Save, FlaskConical } from 'lucide-react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
+import { useCan } from '../lib/permissions'
 import { PageHeader, Button, Card, Table, Modal, Field, inputCls, Loading, ErrorBox, PRODUCT_FORM, num } from '../components/ui'
 
 const EMPTY = { client_id: '', code: '', name: '', form: 'capsule', pack_unit: 'botol', pack_size: '', registration_no: '', halal_cert_no: '', shelf_life_months: 24, active: true }
@@ -18,6 +19,7 @@ export default function Products() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [clientFilter, setClientFilter] = useState('')
+  const canEdit = useCan('products')
 
   const load = async () => {
     const [p, c, m] = await Promise.all([
@@ -95,9 +97,11 @@ export default function Products() {
           <option value="">Semua client</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <Button onClick={() => { setError(''); setForm({ ...EMPTY, client_id: clientFilter }) }} disabled={clients.length === 0}>
-          <Plus size={16} /> Produk baru
-        </Button>
+        {canEdit && (
+          <Button onClick={() => { setError(''); setForm({ ...EMPTY, client_id: clientFilter }) }} disabled={clients.length === 0}>
+            <Plus size={16} /> Produk baru
+          </Button>
+        )}
       </PageHeader>
 
       {!rows ? <Loading /> : (
@@ -120,7 +124,7 @@ export default function Products() {
                     </button>
                   </td>
                   <td className="px-4 py-2 text-right">
-                    <Button variant="ghost" onClick={() => { setError(''); setForm(p) }}><Pencil size={14} /></Button>
+                    {canEdit && <Button variant="ghost" onClick={() => { setError(''); setForm(p) }}><Pencil size={14} /></Button>}
                   </td>
                 </tr>
               )
@@ -176,14 +180,16 @@ export default function Products() {
               <td className="px-4 py-2 text-right">{num(b.qty_per_unit, 6)} {b.raw_materials?.uom}</td>
               <td className="px-4 py-2 text-right">{Number(b.wastage_percent)}%</td>
               <td className="px-4 py-2 text-right">
-                <Button variant="ghost" onClick={() => editBomLine(b)}><Pencil size={14} /></Button>
-                <Button variant="ghost" onClick={() => removeBomLine(b.id)}><Trash2 size={14} className="text-red-500" /></Button>
+                {canEdit && <>
+                  <Button variant="ghost" onClick={() => editBomLine(b)}><Pencil size={14} /></Button>
+                  <Button variant="ghost" onClick={() => removeBomLine(b.id)}><Trash2 size={14} className="text-red-500" /></Button>
+                </>}
               </td>
             </tr>
           ))}
         </Table>
 
-        <form onSubmit={addBomLine} className="mt-4 grid grid-cols-1 gap-3 rounded-lg bg-slate-50 p-3 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end">
+        {canEdit && <form onSubmit={addBomLine} className="mt-4 grid grid-cols-1 gap-3 rounded-lg bg-slate-50 p-3 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end">
           <Field label="Bahan">
             <select className={inputCls} value={bomLine.raw_material_id} onChange={e => setBomLine({ ...bomLine, raw_material_id: e.target.value })} required>
               <option value="">— Pilih bahan —</option>
@@ -202,8 +208,8 @@ export default function Products() {
             )}
             <Button>{editingBom ? <><Save size={16} /> Kemas kini</> : <><Plus size={16} /> Tambah</>}</Button>
           </div>
-        </form>
-        {materials.length === 0 && <p className="mt-2 text-xs text-slate-500">Daftar bahan mentah dahulu di halaman Stok Bahan Mentah → Senarai Bahan.</p>}
+        </form>}
+        {canEdit && materials.length === 0 && <p className="mt-2 text-xs text-slate-500">Daftar bahan mentah dahulu di halaman Stok Bahan Mentah → Senarai Bahan.</p>}
         <p className="mt-2 text-xs text-slate-500">Contoh: 1 botol 60 kapsul × 500mg kolagen = 0.03 kg kolagen. Kalau bahan yang sama ditambah semula, nilainya akan dikemas kini.</p>
       </Modal>
     </Layout>

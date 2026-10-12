@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Plus, Link2, Copy, Banknote, Ban, ExternalLink } from 'lucide-react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
+import { useCan } from '../lib/permissions'
 import { getPayLink } from '../lib/api'
 import { PageHeader, Button, Card, Table, Modal, Field, Badge, inputCls, Loading, ErrorBox, INVOICE_STATUS, rm, fmtDate, today } from '../components/ui'
 
@@ -21,6 +22,7 @@ export default function Invoices() {
   const [busy, setBusy] = useState('')
   const [copied, setCopied] = useState('')
   const [error, setError] = useState('')
+  const canFinance = useCan('finance')
 
   const load = async () => {
     const [i, a, p] = await Promise.all([
@@ -97,9 +99,11 @@ export default function Invoices() {
           <option value="void">Batal</option>
           <option value="all">Semua</option>
         </select>
-        <Button onClick={() => { setError(''); setModal({ type: 'invoice', data: { client_id: '', job_order_id: '', type: 'other', amount: '', due_date: today() } }) }}>
-          <Plus size={16} /> Invois manual
-        </Button>
+        {canFinance && (
+          <Button onClick={() => { setError(''); setModal({ type: 'invoice', data: { client_id: '', job_order_id: '', type: 'other', amount: '', due_date: today() } }) }}>
+            <Plus size={16} /> Invois manual
+          </Button>
+        )}
       </PageHeader>
 
       <ErrorBox error={!modal && error} />
@@ -138,10 +142,12 @@ export default function Invoices() {
                             {copied === i.id ? <Copy size={14} className="text-green-600" /> : <Link2 size={14} />}
                           </Button>
                           {i.payment_url && <a href={i.payment_url} target="_blank" rel="noreferrer" className="inline-flex p-2 text-slate-500 hover:text-brand" title="Buka halaman bayaran"><ExternalLink size={14} /></a>}
-                          <Button variant="ghost" title="Rekod bayaran manual" onClick={() => { setError(''); setModal({ type: 'payment', data: { invoice: i, amount: (i.amount - i.amount_paid).toFixed(2), method: 'bank_transfer', paid_at: today(), reference: '' } }) }}>
-                            <Banknote size={14} />
-                          </Button>
-                          {Number(i.amount_paid) === 0 && <Button variant="ghost" title="Batalkan invois" onClick={() => voidInvoice(i)}><Ban size={14} className="text-red-500" /></Button>}
+                          {canFinance && (
+                            <Button variant="ghost" title="Rekod bayaran manual" onClick={() => { setError(''); setModal({ type: 'payment', data: { invoice: i, amount: (i.amount - i.amount_paid).toFixed(2), method: 'bank_transfer', paid_at: today(), reference: '' } }) }}>
+                              <Banknote size={14} />
+                            </Button>
+                          )}
+                          {canFinance && Number(i.amount_paid) === 0 && <Button variant="ghost" title="Batalkan invois" onClick={() => voidInvoice(i)}><Ban size={14} className="text-red-500" /></Button>}
                         </>
                       )}
                     </td>

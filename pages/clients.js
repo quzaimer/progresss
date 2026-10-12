@@ -3,6 +3,7 @@ import Head from 'next/head'
 import { Plus, Pencil } from 'lucide-react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
+import { useCan } from '../lib/permissions'
 import { PageHeader, Button, Card, Table, Modal, Field, inputCls, Loading, ErrorBox } from '../components/ui'
 
 const EMPTY = { code: '', name: '', ssm_no: '', tin: '', contact_name: '', phone: '', email: '', address: '', deposit_percent: 50, credit_days: 0, is_internal: false }
@@ -13,6 +14,7 @@ export default function Clients() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [q, setQ] = useState('')
+  const canEdit = useCan('clients')
 
   const load = async () => {
     const { data } = await supabase.from('clients').select('*').order('name')
@@ -43,7 +45,7 @@ export default function Clients() {
       <Head><title>Client · Progresss</title></Head>
       <PageHeader title="Client" subtitle="Syarikat yang membuat order dengan kilang">
         <input className={inputCls + ' w-56'} placeholder="Cari client…" value={q} onChange={e => setQ(e.target.value)} />
-        <Button onClick={() => { setError(''); setForm(EMPTY) }}><Plus size={16} /> Client baru</Button>
+        {canEdit && <Button onClick={() => { setError(''); setForm(EMPTY) }}><Plus size={16} /> Client baru</Button>}
       </PageHeader>
 
       {!rows ? <Loading /> : (
@@ -61,7 +63,7 @@ export default function Clients() {
                 <td className="px-4 py-2 text-right">{Number(c.deposit_percent)}%</td>
                 <td className="px-4 py-2 text-right">{c.credit_days} hari</td>
                 <td className="px-4 py-2 text-right">
-                  <Button variant="ghost" onClick={() => { setError(''); setForm(c) }}><Pencil size={14} /></Button>
+                  {canEdit && <Button variant="ghost" onClick={() => { setError(''); setForm(c) }}><Pencil size={14} /></Button>}
                 </td>
               </tr>
             ))}

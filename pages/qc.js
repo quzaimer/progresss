@@ -3,6 +3,7 @@ import Head from 'next/head'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
+import { useCan } from '../lib/permissions'
 import { PageHeader, Button, Card, Table, Modal, Field, inputCls, Loading, ErrorBox, PRODUCT_FORM, num, fmtDate } from '../components/ui'
 
 // Parameter ujian cadangan ikut bentuk produk
@@ -22,6 +23,7 @@ export default function QC() {
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const canQc = useCan('qc')
 
   const load = async () => {
     const [l, b, h] = await Promise.all([
@@ -89,8 +91,10 @@ export default function QC() {
                   <td className="px-4 py-2 text-right">{num(b.good_qty)}</td>
                   <td className="px-4 py-2 text-right">{num(b.reject_qty)}</td>
                   <td className="px-4 py-2 text-right whitespace-nowrap">
-                    <Button variant="ghost" onClick={() => start('batch', b, true)}><CheckCircle2 size={16} className="text-green-600" /> Lulus</Button>
-                    <Button variant="ghost" onClick={() => start('batch', b, false)}><XCircle size={16} className="text-red-600" /> Gagal</Button>
+                    {canQc && <>
+                      <Button variant="ghost" onClick={() => start('batch', b, true)}><CheckCircle2 size={16} className="text-green-600" /> Lulus</Button>
+                      <Button variant="ghost" onClick={() => start('batch', b, false)}><XCircle size={16} className="text-red-600" /> Gagal</Button>
+                    </>}
                   </td>
                 </tr>
               ))}
@@ -109,8 +113,10 @@ export default function QC() {
                   <td className="px-4 py-2">{fmtDate(l.received_at)}</td>
                   <td className="px-4 py-2">{fmtDate(l.expiry_date)}</td>
                   <td className="px-4 py-2 text-right whitespace-nowrap">
-                    <Button variant="ghost" onClick={() => start('lot', l, true)}><CheckCircle2 size={16} className="text-green-600" /> Lulus</Button>
-                    <Button variant="ghost" onClick={() => start('lot', l, false)}><XCircle size={16} className="text-red-600" /> Tolak</Button>
+                    {canQc && <>
+                      <Button variant="ghost" onClick={() => start('lot', l, true)}><CheckCircle2 size={16} className="text-green-600" /> Lulus</Button>
+                      <Button variant="ghost" onClick={() => start('lot', l, false)}><XCircle size={16} className="text-red-600" /> Tolak</Button>
+                    </>}
                   </td>
                 </tr>
               ))}

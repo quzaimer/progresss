@@ -122,7 +122,24 @@ Env yang diperlukan: `CHIP_SECRET_KEY`, `CHIP_BRAND_ID`, `CHIP_PUBLIC_KEY` (pili
 | `finance` | Invois, bayaran |
 | `client` | Portal: data syarikat sendiri sahaja (baca) |
 
-Semua staf boleh membaca semua data operasi. Kawalan tulis mengikut peranan dikuatkuasakan di API/UI pada Fasa 1, dan diperketat ke RLS setiap jadual pada Fasa 2.
+Semua staf boleh membaca semua data operasi. Kawalan tulis mengikut peranan dikuatkuasakan di **database** (RLS + trigger, `0004_role_permissions.sql`) dan butang yang tidak dibenarkan disembunyikan di UI (`lib/permissions.js`). Kedua-dua tempat mesti dikemas kini bersama.
+
+| Tindakan | Peranan (selain admin) |
+|---|---|
+| Client | planner, finance |
+| Produk & formula (BOM), line pengeluaran | planner |
+| Senarai bahan mentah | planner, store |
+| Supplier, terima stok (GRN) | store |
+| Cipta job order, tambah batch, batalkan | planner |
+| Invois deposit/baki, tandakan siap/selesai | planner, finance |
+| Keluarkan bahan ke batch | store, supervisor |
+| Kemas kini peringkat batch (hingga QC) | supervisor, store |
+| Lulus/tolak lot & batch | qc |
+| Delivery Order | planner, store |
+| Invois manual, bayaran manual, batal invois | finance |
+| Urus staf & akses | admin |
+
+Kesan sampingan (pergerakan stok, log peringkat, status job order) dijalankan oleh trigger `security definer`, jadi tidak perlu akses tulis terus pada jadual tersebut.
 
 ## 9. Skema database
 

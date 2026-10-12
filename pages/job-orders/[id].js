@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, Send, Link2, Copy, CheckCircle2, AlertTriangle, XCircl
 import Layout from '../../components/Layout'
 import { supabase } from '../../lib/supabase'
 import { getPayLink } from '../../lib/api'
+import { useCan } from '../../lib/permissions'
 import { materialRequirements, materialCheck } from '../../lib/production'
 import {
   Button, Card, Table, Modal, Field, Badge, inputCls, Loading, ErrorBox,
@@ -26,6 +27,9 @@ export default function JobOrderDetail() {
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const [copied, setCopied] = useState('')
+  const canPlanJobs = useCan('plan_jobs')
+  const canManage = useCan('manage_jobs')
+  const canDeliver = useCan('deliveries')
 
   const load = useCallback(async () => {
     if (!id) return
@@ -123,7 +127,7 @@ export default function JobOrderDetail() {
           <h1 className="flex items-center gap-3 text-2xl font-bold text-brand">{jo.jo_no} <Badge map={JOB_STATUS} value={jo.status} /></h1>
           <p className="text-slate-600">{jo.clients?.name} · {jo.products?.name} ({PRODUCT_FORM[jo.products?.form]})</p>
         </div>
-        {preProduction && (
+        {canPlanJobs && preProduction && (
           <Button variant="outline" loading={busy === 'cancel'} onClick={() => confirm('Batalkan job order ini?') && run('cancel', () => setStatus('cancelled'))}>
             <XCircle size={16} /> Batalkan
           </Button>
@@ -153,7 +157,10 @@ export default function JobOrderDetail() {
       {/* Langkah seterusnya */}
       <Card title="Langkah seterusnya" className="mb-6">
         <div className="p-4 text-sm">
-          {jo.status === 'draft' && (Number(jo.deposit_amount) > 0 ? (
+          {!canManage && !canPlanJobs && !canDeliver && !['completed', 'cancelled'].includes(jo.status) && (
+            <p className="mb-2 text-slate-500">Tindakan pada job order ini dibuat oleh perancang atau kewangan.</p>
+          )}
+          {canManage && jo.status === 'draft' && (Number(jo.deposit_amount) > 0 ? (
             <div className="flex flex-wrap items-center gap-3">
               <span>Keluarkan invois deposit {rm(jo.deposit_amount)}. Kerja hanya boleh bermula selepas deposit dibayar.</span>
               <Button loading={busy === 'deposit'} onClick={requestDeposit}><Send size={16} /> Keluarkan invois deposit</Button>
@@ -165,7 +172,7 @@ export default function JobOrderDetail() {
             </div>
           ))}
 
-          {jo.status === 'awaiting_deposit' && depositInvoice && (
+          {canManage && jo.status === 'awaiting_deposit' && depositInvoice && (
             <div className="flex flex-wrap items-center gap-3">
               <span>Menunggu deposit <b>{depositInvoice.invoice_no}</b> ({rm(depositInvoice.amount - depositInvoice.amount_paid)}). Bila bayaran diterima melalui CHIP, status akan bertukar secara automatik.</span>
               <Button variant="accent" loading={busy === `pay-${depositInvoice.id}`} onClick={() => payLink(depositInvoice)}>
@@ -180,12 +187,12 @@ export default function JobOrderDetail() {
               <span>
                 {plannedQty < jo.quantity ? `Rancang batch untuk baki ${num(jo.quantity - plannedQty)} unit.` : 'Semua kuantiti sudah dirancang. Kemas kini progress di halaman Progress Pengeluaran.'}
               </span>
-              {plannedQty < jo.quantity && (
+              {canPlanJobs && plannedQty < jo.quantity && (
                 <Button onClick={() => setBatchForm({ planned_qty: jo.quantity - plannedQty, line_id: lines[0]?.id || '', planned_start: today(), planned_end: '' })}>
                   <Plus size={16} /> Tambah batch
                 </Button>
               )}
-              {releasedQty > 0 && releasedQty < jo.quantity && (
+              {canManage && releasedQty > 0 && releasedQty < jo.quantity && (
                 <Button variant="outline" loading={busy === 'ready'} onClick={() => run('ready', () => setStatus('ready'))}>Tandakan siap ({num(releasedQty)} unit)</Button>
               )}
             </div>
@@ -194,16 +201,16 @@ export default function JobOrderDetail() {
           {jo.status === 'ready' && (
             <div className="flex flex-wrap items-center gap-3">
               <span>Barang siap. Keluarkan invois baki, dan buat Delivery Order bila barang dihantar.</span>
-              {billed < Number(jo.total_amount) && <Button loading={busy === 'balance'} onClick={createBalanceInvoice}><Send size={16} /> Invois baki {rm(jo.total_amount - billed)}</Button>}
-              <Link href={`/deliveries?jo=${jo.id}`}><Button variant="outline"><Truck size={16} /> Buat Delivery Order</Button></Link>
+              {canManage && billed < Number(jo.total_amount) && <Button loading={busy === 'balance'} onClick={createBalanceInvoice}><Send size={16} /> Invois baki {rm(jo.total_amount - billed)}</Button>}
+              {canDeliver && <Link href={`/deliveries?jo=${jo.id}`}><Button variant="outline"><Truck size={16} /> Buat Delivery Order</Button></Link>}
             </div>
           )}
 
           {jo.status === 'delivered' && (
             <div className="flex flex-wrap items-center gap-3">
               <span>Barang sudah dihantar. Tandakan selesai selepas semua invois dijelaskan.</span>
-              {billed < Number(jo.total_amount) && <Button variant="outline" loading={busy === 'balance'} onClick={createBalanceInvoice}><Send size={16} /> Invois baki</Button>}
-              <Button loading={busy === 'done'} onClick={() => run('done', () => setStatus('completed'))}><CheckCircle2 size={16} /> Tandakan selesai</Button>
+              {canManage && billed < Number(jo.total_amount) && <Button variant="outline" loading={busy === 'balance'} onClick={createBalanceInvoice}><Send size={16} /> Invois baki</Button>}
+              {canManage && <Button loading={busy === 'done'} onClick={() => run('done', () => setStatus('completed'))}><CheckCircle2 size={16} /> Tandakan selesai</Button>}
             </div>
           )}
 

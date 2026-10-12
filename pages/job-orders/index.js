@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { Plus, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import Layout from '../../components/Layout'
 import { supabase } from '../../lib/supabase'
+import { useCan } from '../../lib/permissions'
 import { materialRequirements, materialCheck } from '../../lib/production'
 import { PageHeader, Button, Card, Table, Modal, Field, Badge, inputCls, Loading, ErrorBox, JOB_STATUS, rm, num, fmtDate } from '../../components/ui'
 
@@ -26,6 +27,7 @@ export default function JobOrders() {
   const [stock, setStock] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const canCreate = useCan('plan_jobs')
 
   const load = async () => {
     const { data } = await supabase.from('v_job_order_progress').select('*').order('jo_no', { ascending: false })
@@ -94,9 +96,11 @@ export default function JobOrders() {
           <option value="done">Dihantar / selesai</option>
           <option value="cancelled">Batal</option>
         </select>
-        <Button onClick={() => { setError(''); setForm({ client_id: '', product_id: '', quantity: '', unit_price: '', deposit_amount: '', requested_date: '', promised_date: '', notes: '', status: 'draft' }) }}>
-          <Plus size={16} /> Job order baru
-        </Button>
+        {canCreate && (
+          <Button onClick={() => { setError(''); setForm({ client_id: '', product_id: '', quantity: '', unit_price: '', deposit_amount: '', requested_date: '', promised_date: '', notes: '', status: 'draft' }) }}>
+            <Plus size={16} /> Job order baru
+          </Button>
+        )}
       </PageHeader>
 
       {!rows ? <Loading /> : (

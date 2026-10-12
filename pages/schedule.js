@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Settings2, Plus, Pencil } from 'lucide-react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
+import { useCan } from '../lib/permissions'
 import { PageHeader, Button, Card, Table, Modal, Field, inputCls, Loading, ErrorBox, BATCH_STAGE, num } from '../components/ui'
 
 const DAYS = 14
@@ -20,6 +21,7 @@ export default function Schedule() {
   const [manage, setManage] = useState(false)
   const [lineForm, setLineForm] = useState(null)
   const [error, setError] = useState('')
+  const canLines = useCan('lines')
 
   const end = addDays(start, DAYS - 1)
   const days = Array.from({ length: DAYS }, (_, i) => addDays(start, i))
@@ -63,13 +65,13 @@ export default function Schedule() {
         <Button variant="outline" onClick={() => setStart(addDays(start, -7))}><ChevronLeft size={16} /></Button>
         <Button variant="outline" onClick={() => setStart(monday())}>Minggu ini</Button>
         <Button variant="outline" onClick={() => setStart(addDays(start, 7))}><ChevronRight size={16} /></Button>
-        <Button onClick={() => setManage(true)}><Settings2 size={16} /> Urus line</Button>
+        {canLines && <Button onClick={() => setManage(true)}><Settings2 size={16} /> Urus line</Button>}
       </PageHeader>
 
       {!lines ? <Loading /> : (
         <>
           {lines.length === 0 && (
-            <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Belum ada line pengeluaran. Tekan <b>Urus line</b> untuk tambah (contoh: Line Kapsul 1, Line Minuman 1).</p>
+            <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Belum ada line pengeluaran. {canLines ? <>Tekan <b>Urus line</b> untuk tambah</> : 'Minta perancang tambah'} (contoh: Line Kapsul 1, Line Minuman 1).</p>
           )}
           <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table className="w-full min-w-[1100px] table-fixed text-xs">

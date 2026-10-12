@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { Plus } from 'lucide-react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
+import { useCan } from '../lib/permissions'
 import { PageHeader, Button, Card, Table, Modal, Field, inputCls, Loading, ErrorBox, num, fmtDate, today } from '../components/ui'
 
 export default function Deliveries() {
@@ -14,6 +15,7 @@ export default function Deliveries() {
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const canDeliver = useCan('deliveries')
 
   const load = async () => {
     const [d, j] = await Promise.all([
@@ -71,7 +73,7 @@ export default function Deliveries() {
     <Layout>
       <Head><title>Penghantaran · Progresss</title></Head>
       <PageHeader title="Penghantaran" subtitle="Delivery Order untuk barang yang sudah lulus QC">
-        <Button onClick={() => openForm()} disabled={jobs.length === 0}><Plus size={16} /> Delivery Order baru</Button>
+        {canDeliver && <Button onClick={() => openForm()} disabled={jobs.length === 0}><Plus size={16} /> Delivery Order baru</Button>}
       </PageHeader>
 
       <ErrorBox error={!form && error} />
@@ -89,7 +91,7 @@ export default function Deliveries() {
                     <td className="px-4 py-2 text-right">{num(j.released)}</td>
                     <td className="px-4 py-2 text-right">{num(j.delivered)}</td>
                     <td className="px-4 py-2 text-right font-medium">{num(j.balance)} {j.products?.pack_unit}</td>
-                    <td className="px-4 py-2 text-right"><Button variant="outline" onClick={() => openForm(j)}>Buat DO</Button></td>
+                    <td className="px-4 py-2 text-right">{canDeliver && <Button variant="outline" onClick={() => openForm(j)}>Buat DO</Button>}</td>
                   </tr>
                 ))}
               </Table>

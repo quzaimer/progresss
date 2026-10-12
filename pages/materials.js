@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Plus, Pencil, PackagePlus, AlertTriangle } from 'lucide-react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
+import { useCan } from '../lib/permissions'
 import {
   PageHeader, Button, Card, Table, Modal, Field, Tabs, Badge, inputCls, Loading, ErrorBox,
   LOT_STATUS, MATERIAL_CATEGORY, num, fmtDate, today, rm,
@@ -22,6 +23,9 @@ export default function Materials() {
   const [modal, setModal] = useState(null) // { type: 'material'|'supplier'|'lot', data }
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const canReceive = useCan('receive_stock')
+  const canMaterials = useCan('materials')
+  const canSuppliers = useCan('suppliers')
 
   const load = async () => {
     const [s, l, m, sp] = await Promise.all([
@@ -86,7 +90,7 @@ export default function Materials() {
     <Layout>
       <Head><title>Stok Bahan Mentah · Progresss</title></Head>
       <PageHeader title="Stok Bahan Mentah" subtitle="Stok ikut lot: kuarantin → lulus QC → digunakan (FEFO)">
-        <Button onClick={() => receiveLot()} disabled={materials.length === 0}><PackagePlus size={16} /> Terima stok (GRN)</Button>
+        {canReceive && <Button onClick={() => receiveLot()} disabled={materials.length === 0}><PackagePlus size={16} /> Terima stok (GRN)</Button>}
       </PageHeader>
 
       <Tabs value={tab} onChange={setTab} tabs={[
@@ -112,7 +116,7 @@ export default function Materials() {
                     <td className="px-4 py-2 text-right text-amber-700">{Number(s.quarantine_qty) ? `${num(s.quarantine_qty, 3)} ${s.uom}` : '—'}</td>
                     <td className="px-4 py-2 text-right text-slate-500">{num(s.reorder_level, 3)} {s.uom}</td>
                     <td className={`px-4 py-2 ${s.next_expiry && s.next_expiry <= soon ? 'text-red-600' : ''}`}>{fmtDate(s.next_expiry)}</td>
-                    <td className="px-4 py-2 text-right"><Button variant="outline" onClick={() => receiveLot(s.id)}>Terima</Button></td>
+                    <td className="px-4 py-2 text-right">{canReceive && <Button variant="outline" onClick={() => receiveLot(s.id)}>Terima</Button>}</td>
                   </tr>
                 ))}
               </Table>
@@ -154,7 +158,7 @@ export default function Materials() {
           )}
 
           {tab === 'materials' && (
-            <Card title="Senarai bahan" actions={<Button onClick={() => open('material', EMPTY_MATERIAL)}><Plus size={16} /> Bahan baru</Button>}>
+            <Card title="Senarai bahan" actions={canMaterials && <Button onClick={() => open('material', EMPTY_MATERIAL)}><Plus size={16} /> Bahan baru</Button>}>
               <Table head={['Kod', 'Nama', 'Kategori', 'Unit', { label: 'Paras reorder', right: true }, 'Halal', 'Supplier utama', '']}
                 empty={materials.length === 0 && 'Belum ada bahan'}>
                 {materials.map(m => (
@@ -166,7 +170,7 @@ export default function Materials() {
                     <td className="px-4 py-2 text-right">{num(m.reorder_level, 3)}</td>
                     <td className="px-4 py-2">{m.is_halal == null ? '—' : m.is_halal ? 'Ya' : 'Tidak'}</td>
                     <td className="px-4 py-2">{m.suppliers?.name || '—'}</td>
-                    <td className="px-4 py-2 text-right"><Button variant="ghost" onClick={() => open('material', { ...m, default_supplier_id: m.default_supplier_id || '' })}><Pencil size={14} /></Button></td>
+                    <td className="px-4 py-2 text-right">{canMaterials && <Button variant="ghost" onClick={() => open('material', { ...m, default_supplier_id: m.default_supplier_id || '' })}><Pencil size={14} /></Button>}</td>
                   </tr>
                 ))}
               </Table>
@@ -174,7 +178,7 @@ export default function Materials() {
           )}
 
           {tab === 'suppliers' && (
-            <Card title="Supplier" actions={<Button onClick={() => open('supplier', EMPTY_SUPPLIER)}><Plus size={16} /> Supplier baru</Button>}>
+            <Card title="Supplier" actions={canSuppliers && <Button onClick={() => open('supplier', EMPTY_SUPPLIER)}><Plus size={16} /> Supplier baru</Button>}>
               <Table head={['Nama', 'Hubungi', 'Telefon', 'Emel', '']} empty={suppliers.length === 0 && 'Belum ada supplier'}>
                 {suppliers.map(s => (
                   <tr key={s.id}>
@@ -182,7 +186,7 @@ export default function Materials() {
                     <td className="px-4 py-2">{s.contact_name}</td>
                     <td className="px-4 py-2">{s.phone}</td>
                     <td className="px-4 py-2">{s.email}</td>
-                    <td className="px-4 py-2 text-right"><Button variant="ghost" onClick={() => open('supplier', s)}><Pencil size={14} /></Button></td>
+                    <td className="px-4 py-2 text-right">{canSuppliers && <Button variant="ghost" onClick={() => open('supplier', s)}><Pencil size={14} /></Button>}</td>
                   </tr>
                 ))}
               </Table>

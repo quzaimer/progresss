@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { ArrowRight, PackageOpen, AlertTriangle } from 'lucide-react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
+import { useCan } from '../lib/permissions'
 import { materialRequirements, allocateFefo, NEXT_STAGE } from '../lib/production'
 import { PageHeader, Button, Modal, Field, Badge, Table, inputCls, Loading, ErrorBox, BATCH_STAGE, PRODUCT_FORM, num, fmtDate } from '../components/ui'
 
@@ -20,6 +21,8 @@ export default function Production() {
   const [qty, setQty] = useState({ good_qty: '', reject_qty: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const canIssue = useCan('issue_materials')
+  const canStage = useCan('batch_stage')
 
   const load = useCallback(async () => {
     let q = supabase.from('production_batches')
@@ -171,18 +174,20 @@ export default function Production() {
                             Terima stok baru atau luluskan lot kuarantin di QC.
                           </div>
                         ) : (
-                          <Button className="mt-3" loading={busy} onClick={issueMaterials}><PackageOpen size={16} /> Sahkan & keluarkan bahan</Button>
+                          canIssue
+                            ? <Button className="mt-3" loading={busy} onClick={issueMaterials}><PackageOpen size={16} /> Sahkan & keluarkan bahan</Button>
+                            : <p className="mt-2 text-sm text-slate-500">Bahan dikeluarkan oleh stor atau penyelia.</p>
                         )}
                       </>
                     )}
                   </div>
                 )}
 
-                {['material_issued', 'processing', 'forming'].includes(selected.stage) && (
+                {canStage && ['material_issued', 'processing', 'forming'].includes(selected.stage) && (
                   <Button loading={busy} onClick={advance}>Seterusnya: {BATCH_STAGE[NEXT_STAGE[selected.stage]][0]} <ArrowRight size={16} /></Button>
                 )}
 
-                {selected.stage === 'packing' && (
+                {canStage && selected.stage === 'packing' && (
                   <div className="rounded-lg border border-slate-200 p-3">
                     <h3 className="mb-2 font-medium">Packing selesai: rekod kuantiti</h3>
                     <div className="grid grid-cols-2 gap-3">

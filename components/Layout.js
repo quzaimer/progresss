@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { LayoutDashboard, ClipboardList, Factory, CalendarDays, Package, FlaskConical, Boxes, Truck, Receipt, Users, UserCog, LogOut } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { loadProfile } from '../lib/permissions'
 
 const NAV = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -23,11 +24,7 @@ export default function Layout({ children }) {
   const [profile, setProfile] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return router.replace('/login')
-      const { data } = await supabase.from('profiles').select('full_name, role').eq('id', session.user.id).single()
-      setProfile({ email: session.user.email, ...data })
-    })
+    loadProfile().then(p => (p ? setProfile(p) : router.replace('/login')))
   }, [router])
 
   const logout = async () => {
