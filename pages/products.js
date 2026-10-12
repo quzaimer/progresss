@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Head from 'next/head'
-import { Plus, Pencil, Trash2, FlaskConical } from 'lucide-react'
+import { Plus, Pencil, Trash2, Save, FlaskConical } from 'lucide-react'
 import Layout from '../components/Layout'
 import { supabase } from '../lib/supabase'
 import { PageHeader, Button, Card, Table, Modal, Field, inputCls, Loading, ErrorBox, PRODUCT_FORM, num } from '../components/ui'
@@ -71,6 +71,11 @@ export default function Products() {
     load()
   }
 
+  const editBomLine = b => {
+    setError('')
+    setBomLine({ raw_material_id: b.raw_material_id, qty_per_unit: b.qty_per_unit, wastage_percent: b.wastage_percent })
+  }
+
   const removeBomLine = async id => {
     await supabase.from('bom_items').delete().eq('id', id)
     loadBom(bomFor.id)
@@ -79,6 +84,7 @@ export default function Products() {
 
   const set = k => e => setForm({ ...form, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })
   const shown = (rows || []).filter(r => !clientFilter || r.client_id === clientFilter)
+  const editingBom = bom.some(b => b.raw_material_id === bomLine.raw_material_id)
   const selectedUom = materials.find(m => m.id === bomLine.raw_material_id)?.uom
 
   return (
@@ -170,6 +176,7 @@ export default function Products() {
               <td className="px-4 py-2 text-right">{num(b.qty_per_unit, 6)} {b.raw_materials?.uom}</td>
               <td className="px-4 py-2 text-right">{Number(b.wastage_percent)}%</td>
               <td className="px-4 py-2 text-right">
+                <Button variant="ghost" onClick={() => editBomLine(b)}><Pencil size={14} /></Button>
                 <Button variant="ghost" onClick={() => removeBomLine(b.id)}><Trash2 size={14} className="text-red-500" /></Button>
               </td>
             </tr>
@@ -189,7 +196,12 @@ export default function Products() {
           <Field label="Pembaziran (%)">
             <input type="number" step="0.01" min="0" className={inputCls} value={bomLine.wastage_percent} onChange={e => setBomLine({ ...bomLine, wastage_percent: e.target.value })} />
           </Field>
-          <Button><Plus size={16} /> Tambah</Button>
+          <div className="flex gap-2">
+            {editingBom && (
+              <Button type="button" variant="outline" onClick={() => setBomLine({ raw_material_id: '', qty_per_unit: '', wastage_percent: 0 })}>Batal</Button>
+            )}
+            <Button>{editingBom ? <><Save size={16} /> Kemas kini</> : <><Plus size={16} /> Tambah</>}</Button>
+          </div>
         </form>
         {materials.length === 0 && <p className="mt-2 text-xs text-slate-500">Daftar bahan mentah dahulu di halaman Stok Bahan Mentah → Senarai Bahan.</p>}
         <p className="mt-2 text-xs text-slate-500">Contoh: 1 botol 60 kapsul × 500mg kolagen = 0.03 kg kolagen. Kalau bahan yang sama ditambah semula, nilainya akan dikemas kini.</p>
